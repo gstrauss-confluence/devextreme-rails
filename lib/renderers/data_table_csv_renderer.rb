@@ -24,4 +24,65 @@ module Devextreme
       :disposition => "attachment; filename=#{filename}.#{extension}"
     )
   end
+
+  class DataTableCsvGenerator
+    def initialize(data_table, view_context, query, options = {})
+      @data_table = data_table
+      @view_context = view_context
+      @query = query
+      @options = options
+      @summary = @options.delete(:summary)
+    end
+
+    def run
+      generate_csv
+    end
+
+    private
+
+    def generate_csv
+      csv_rows = []
+
+      if @summary && @summary.count > 0
+        @summary.each do |row|
+          csv_rows << row
+        end
+        csv_rows << []
+      end
+
+      columns = @options.fetch(:columns_layout, {}).fetch('columns', [])
+
+      if columns.present?
+        @data_table.columns.each do |column|
+          user_column = columns.detect { |c| c['dataField'].split('.').last == column.name.to_s } || { 'visible' => false }
+          column.options.reverse_merge!(user_visible: user_column['visible'], user_visible_index: user_column['visibleIndex'])
+        end
+      end
+
+      if @options.fetch(:write_headers, :true)
+        headers = @data_table.each_header
+        csv_rows << headers
+      end
+
+      @query.each do |instance|
+        row = []
+        @data_table.each_csv_row(instance, @view_context).each do |value|
+          if value.is_a?(Hash) && (value.has_key?(:href) || value.has_key?(:content))
+            row << value[:text]
+          else
+            row << value
+          end
+        end
+        csv_rows << row
+      end
+
+      csv_string = CSV.generate(headers: false) do |csv|
+        csv_rows.each do |row|
+          csv << row
+        end
+      end
+
+      csv_string
+    end
+  end
 end

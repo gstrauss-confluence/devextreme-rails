@@ -50,7 +50,7 @@ module Devextreme
           xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
           xmlns:html="http://www.w3.org/TR/REC-html40"
           xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-          xmlns:o="urn:schemas-microsoft-com:office:office"> 
+          xmlns:o="urn:schemas-microsoft-com:office:office">
         <Styles>
           <Style ss:ID="Default" ss:Name="Normal">
            <Alignment ss:Vertical="Bottom"/>
@@ -106,7 +106,7 @@ module Devextreme
 
       @query.each do |instance|
         output << "<Row>"
-        @data_table.each_row(instance, @view_context).each do |value|
+        @data_table.each_xls_row(instance, @view_context).each do |value|
           if value.is_a?(Hash) && (value.has_key?(:href) || value.has_key?(:content))
             output << "<Cell><Data ss:Type=\"#{resolve_type(value)}\">#{value[:text]}</Data></Cell>"
           else

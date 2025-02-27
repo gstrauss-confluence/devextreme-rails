@@ -916,7 +916,6 @@ module Devextreme
       end
 
       def to_csv(view_context, params, options)
-
         #
         # NOTE: this implementation has the potential to run out of memory
         #       since it loads all the data in memory...
@@ -924,47 +923,12 @@ module Devextreme
         # TODO: refactor to use `send_data` so that the data is streamed to the browser instead
         #
 
-        header = []
-        rows = []
-
-        cols = @columns.select{ |col| col.downloadable? }
-
-        if cols.present? && options.dig(:columns_layout, 'columns')
-          cols.each do |column|
-            user_column = options[:columns_layout]['columns'].detect do |c|
-              col_name = column.name.to_s
-              split_layout_name = c['dataField'].split('.')
-
-              # This has to be done to handle case where the columns name is an array of symbols instead of a symbol
-              name = split_layout_name.length > 2 ? split_layout_name.last(2).map!(&:to_sym).to_s : split_layout_name.last.to_s
-
-              col_name == name
-            end || {'visible' => false}
-
-            column.options.reverse_merge!(:user_visible => user_column['visible'], :user_visible_index => user_column['visibleIndex'])
-          end
-
-          cols.sort_by! { |c| c.options[:user_visible_index] }
-        end
-
-        if @options.fetch(:write_headers, :true)
-          header << cols.collect{|c| c.caption}.join(',')
-        end
-
         resultset, _ = get_resultset_and_count(params, options)
 
-        resultset.each do |instance|
-          rows << cols.collect do |c|
-            value = c.to_csv_text(instance, view_context) rescue nil
-            value.is_a?(Hash) ? value[:text] : value
-          end.join(',')
-        end
-
-        (header + rows).join("\n")
+        DataTableCsvGenerator.new(self, view_context, resultset, options).run
       end
 
       def to_xls(view_context, params, options)
-
         #
         # NOTE: this implementation has the potential to run out of memory
         #       since it loads all the data in memory...
@@ -975,7 +939,6 @@ module Devextreme
         resultset, _ = get_resultset_and_count(params, options)
 
         DataTableXlsGenerator.new(self, view_context, resultset, options).run
-
       end
 
       # NOTE: these methods consumed by DataTableXlsGenerator
@@ -987,11 +950,19 @@ module Devextreme
           .collect(&:caption)
       end
 
-      def each_row(instance, view_context)
+      def each_csv_row(instance, view_context)
+        each_row(instance, view_context, :to_csv_text)
+      end
+
+      def each_xls_row(instance, view_context)
+        each_row(instance, view_context, :to_xls_text)
+      end
+
+      def each_row(instance, view_context, method_call)
         @columns
           .select{ |column| column.options.fetch(:user_visible, true) == true }
           .sort_by{ |column| column.options[:user_visible_index] }
-          .collect{ |column| column.to_xls_text(instance, view_context) rescue nil }
+          .collect{ |column| column.send(method_call, instance, view_context) rescue nil }
       end
 
       private
