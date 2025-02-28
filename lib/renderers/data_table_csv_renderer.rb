@@ -55,7 +55,7 @@ module Devextreme
       if columns.present?
         @data_table.columns.each do |column|
           user_column = columns.detect { |c| c['dataField'].split('.').last == column.name.to_s } || { 'visible' => false }
-          column.options.reverse_merge!(user_visible: user_column['visible'], user_visible_index: user_column['visibleIndex'])
+          column.options.reverse_merge!(:user_visible => user_column['visible'], :user_visible_index => user_column['visibleIndex'])
         end
       end
 
@@ -76,7 +76,7 @@ module Devextreme
         csv_rows << row
       end
 
-      csv_string = CSV.generate(headers: false) do |csv|
+      csv_string = CSV.generate(:headers => false) do |csv|
         csv_rows.each do |row|
           csv << row
         end
